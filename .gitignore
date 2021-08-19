@@ -53,7 +53,6 @@ dkms.conf
 
 *.tar.gz
 *.tgz
-*.pkg.tar.zst
 *.bak
 pkg/
 src/
