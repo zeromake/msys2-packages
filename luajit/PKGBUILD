@@ -1,0 +1,26 @@
+# Maintainer: zeromake <a390720046@gmail.com>
+
+pkgname=luajit
+pkgver=2.1.0
+pkgrel=1
+pkgdesc="a Just-In-Time Compiler for Lua."
+arch=('x86_64')
+license=('MIT')
+url="https://luajit.org"
+groups=('base-devel')
+depends=('sh')
+makedepends=('make' 'gcc')
+install=luajit.install
+source=(${pkgname}-${pkgver}.tar.gz::https://luajit.org/download/LuaJIT-2.1.0-beta3.tar.gz)
+sha256sums=('1ad2e34b111c802f9d0cdf019e986909123237a28c746b21295b63c9e785d9c3')
+build() {
+  cd ${srcdir}/LuaJIT-2.1.0-beta3
+  make
+}
+
+package() {
+  cd ${srcdir}/LuaJIT-2.1.0-beta3
+  make DESTDIR=${pkgdir} install
+  mv ${pkgdir}/usr/local/bin/luajit-2.1.0-beta3.exe ${pkgdir}/usr/local/bin/luajit.exe
+  cp src/lua51.dll ${pkgdir}/usr/local/bin
+}
