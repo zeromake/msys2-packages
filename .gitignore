@@ -52,6 +52,7 @@ Mkfile.old
 dkms.conf
 
 *.tar.gz
+*.tar.xz
 *.tgz
 *.bak
 pkg/
