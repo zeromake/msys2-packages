@@ -1,0 +1,59 @@
+# Maintainer: Alexey Pavlov <alexpux@gmail.com>
+
+pkgname=tmux
+_base_ver=3.2
+_bugfix=a
+pkgver=${_base_ver}.${_bugfix}
+pkgrel=1
+pkgdesc='A terminal multiplexer'
+url='https://tmux.github.io/'
+arch=('i686' 'x86_64')
+license=('BSD')
+conflict=('tmux-git')
+replaces=('tmux-git')
+depends=('ncurses' 'libevent')
+makedepends=('ncurses-devel' 'libevent-devel' 'autoconf' 'automake' 'pkg-config' 'gcc' 'make')
+source=(https://github.com/tmux/tmux/releases/download/${_base_ver}${_bugfix}/tmux-${_base_ver}${_bugfix}.tar.gz
+        'msys-platform.patch'
+        'no-check-dirs-permission.patch'
+        'inherit-msystem-var.patch')
+
+sha256sums=('551553a4f82beaa8dadc9256800bcc284d7c000081e47aa6ecbb6ff36eacd05f'
+            'cf7e0f642d43fc97f7c55be41c693cceab5c891f81fcee687e918075e55cd533'
+            '8f1938c9bcb99fba5441e11379a193c17eee582a03c04f1bde8089d58a84f44f'
+            'aeaea034eeefe9598a56ebfabdf21cb991b2ac39d62dca9f857d24e5bc375366')
+
+prepare() {
+  cd "${srcdir}/${pkgname}-${_base_ver}${_bugfix}"
+  patch -p1 -i "${srcdir}"/msys-platform.patch
+  patch -p0 -i "${srcdir}"/no-check-dirs-permission.patch
+  patch -p0 -i "${srcdir}"/inherit-msystem-var.patch
+
+  cp osdep-cygwin.c osdep-msys.c
+}
+
+build() {
+  cd "${srcdir}/${pkgname}-${_base_ver}${_bugfix}"
+  ./configure \
+    --prefix=/usr \
+    --sysconfdir=/etc \
+    --localstatedir=/var \
+    CPPFLAGS="${CPPFLAGS} -I/usr/include/ncursesw -U_XOPEN_SOURCE"
+  make
+}
+
+package() {
+  cd "${srcdir}/${pkgname}-${_base_ver}${_bugfix}"
+  make DESTDIR="${pkgdir}" install
+
+  install -d "${pkgdir}"/usr/share/licenses/tmux
+  install -m 644 COPYING "${pkgdir}"/usr/share/licenses/tmux
+
+  #install -d "${pkgdir}"/usr/share/tmux
+  #install -m 644 examples/* "${pkgdir}"/usr/share/tmux
+  #install -d "${pkgdir}"/usr/share/vim/vimfiles/syntax
+  #install -m 644 examples/tmux.vim "${pkgdir}"/usr/share/vim/vimfiles/syntax
+
+  #install -d "${pkgdir}"/usr/share/bash-completion/completions/tmux
+  #mv "${pkgdir}"/usr/share/tmux/bash_completion_tmux.sh "${pkgdir}"/usr/share/bash-completion/completions/tmux
+}

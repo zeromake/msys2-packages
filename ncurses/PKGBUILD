@@ -1,0 +1,129 @@
+# Maintainer: Alexey Pavlov <Alexpux@gmail.com>
+
+pkgbase=ncurses
+pkgname=('ncurses' 'ncurses-devel')
+_basever=6.2
+_date=20210501
+pkgver=${_basever}.${_date}
+# pkgver=6.2
+pkgrel=1
+pkgdesc="System V Release 4.0 curses emulation library"
+arch=('i686' 'x86_64')
+url="https://www.gnu.org/software/ncurses/"
+license=('MIT')
+source=(#"${pkgbase}-${pkgver}.tar.gz"::"https://invisible-mirror.net/archives/ncurses/current/${pkgbase}-${_basever}-${_date}.tgz"
+        ftp://ftp.invisible-island.net/ncurses/current/ncurses-${_basever}-${_date}.tgz{,.asc}
+        https://src.fedoraproject.org/rpms/ncurses/raw/rawhide/f/ncurses-config.patch
+        https://src.fedoraproject.org/rpms/ncurses/raw/rawhide/f/ncurses-kbs.patch
+        https://src.fedoraproject.org/rpms/ncurses/raw/rawhide/f/ncurses-urxvt.patch
+        6.0-abi-version.patch)
+sha256sums=('f7403fe05a6e1032849c2892547324048d113fe1573161c5953db79c1b4a7bc7'
+            'SKIP'
+            'b86ae72af092dac4b2ea1cb683bd899a0ccdb5b97d8a36dffcdef1542be194e3'
+            'fd2f624128fbf9b574aea429e424e21db7981bd994bdbed92a1eb076fe2f1f3e'
+            '6f9897c3be1c08ad4ec9b778dd84dd6858034f3df46fc0d6a5c8187fb507b556'
+            '4d796274cb36313bb52fd36fc13645e765a4f8e80ae08beb630170d69608d071')
+validpgpkeys=('C52048C0C0748FEE227D47A2702353E0F7E48EDB')
+
+prepare() {
+  cd ${srcdir}/${pkgbase}-${_basever}-${_date}
+  patch -p1 -i ${srcdir}/ncurses-config.patch
+  patch -p1 -i ${srcdir}/ncurses-kbs.patch
+  patch -p1 -i ${srcdir}/ncurses-urxvt.patch
+  patch -p2 -i ${srcdir}/6.0-abi-version.patch
+}
+
+build() {
+  cd ${srcdir}/${pkgbase}-${_basever}-${_date}
+
+  ./configure \
+    --build=${CHOST} \
+    --with-install-prefix=/usr \
+    --without-ada \
+    --with-shared \
+    --with-cxx-shared \
+    --with-normal \
+    --without-debug \
+    --disable-relink \
+    --disable-rpath \
+    --with-ticlib \
+    --without-termlib \
+    --enable-widec \
+    --enable-ext-colors \
+    --enable-ext-mouse \
+    --enable-sp-funcs \
+    --enable-reentrant \
+    --with-abi-version=10 \
+    --enable-lp64 \
+    --with-wrap-prefix=ncwrap_ \
+    --enable-sigwinch \
+    --disable-term-driver \
+    --enable-colorfgbg \
+    --enable-tcap-names \
+    --disable-termcap \
+    --disable-mixed-case \
+    --enable-symlinks \
+    --with-pkg-config \
+    --enable-pc-files \
+    --with-manpage-format=normal \
+    --with-manpage-aliases \
+    --with-default-terminfo-dir=/usr/share/terminfo \
+    --enable-echo \
+    --mandir=/usr/share/man \
+    --includedir=/usr/include/ncursesw \
+    --with-build-cflags=-D_XOPEN_SOURCE_EXTENDED \
+    --with-pkg-config-libdir=/usr/lib/pkgconfig
+
+  make
+  make DESTDIR=${srcdir}/dest install
+}
+
+package_ncurses() {
+  depends=('gcc-libs')
+
+  mkdir -p ${pkgdir}/usr
+  cp -rf $srcdir/dest/usr/bin ${pkgdir}/usr/
+  rm -f ${pkgdir}/usr/bin/*-config
+  mkdir -p ${pkgdir}/usr/lib
+  cp -rf $srcdir/dest/usr/lib/terminfo ${pkgdir}/usr/lib/
+  cp -rf $srcdir/dest/usr/share ${pkgdir}/usr/
+
+  # install license, rip it from the readme
+  cd ${srcdir}/${pkgname}-${_basever}-${_date}
+  install -dm755 ${pkgdir}/usr/share/licenses/${pkgname}
+  grep -B 100 '$Id' README > ${pkgdir}/usr/share/licenses/${pkgname}/license.txt
+}
+
+package_ncurses-devel() {
+  groups=('development')
+  options=('staticlibs')
+  depends=("ncurses=${pkgver}")
+  pkgdesc="NCURSES headers and libraries"
+
+  mkdir -p ${pkgdir}/usr/bin
+  cp -f $srcdir/dest/usr/bin/*-config ${pkgdir}/usr/bin/
+  cp -rf $srcdir/dest/usr/include ${pkgdir}/usr/
+  cp -rf $srcdir/dest/usr/lib ${pkgdir}/usr/
+  rm -rf ${pkgdir}/usr/lib/terminfo
+
+  cp -rf ${pkgdir}/usr/include/ncursesw ${pkgdir}/usr/include/ncurses
+  cp -f ${pkgdir}/usr/include/ncursesw/*.h ${pkgdir}/usr/include
+
+  cp -f ${pkgdir}/usr/lib/libncursesw.a ${pkgdir}/usr/lib/libncurses.a
+  cp -f ${pkgdir}/usr/lib/libncursesw.dll.a ${pkgdir}/usr/lib/libncurses.dll.a
+  cp -f ${pkgdir}/usr/lib/libncursesw.a ${pkgdir}/usr/lib/libcurses.a
+  cp -f ${pkgdir}/usr/lib/libncursesw.dll.a ${pkgdir}/usr/lib/libcurses.dll.a
+
+  cp -f ${pkgdir}/usr/lib/libpanelw.a ${pkgdir}/usr/lib/libpanel.a
+  cp -f ${pkgdir}/usr/lib/libpanelw.dll.a ${pkgdir}/usr/lib/libpanel.dll.a
+
+  cp -f ${pkgdir}/usr/lib/libmenuw.a ${pkgdir}/usr/lib/libmenu.a
+  cp -f ${pkgdir}/usr/lib/libmenuw.dll.a ${pkgdir}/usr/lib/libmenu.dll.a
+
+  cp -f ${pkgdir}/usr/lib/pkgconfig/formw.pc ${pkgdir}/usr/lib/pkgconfig/form.pc
+  cp -f ${pkgdir}/usr/lib/pkgconfig/menuw.pc ${pkgdir}/usr/lib/pkgconfig/menu.pc
+  cp -f ${pkgdir}/usr/lib/pkgconfig/ncurses++w.pc ${pkgdir}/usr/lib/pkgconfig/ncurses++.pc
+  cp -f ${pkgdir}/usr/lib/pkgconfig/ncursesw.pc ${pkgdir}/usr/lib/pkgconfig/ncurses.pc
+  cp -f ${pkgdir}/usr/lib/pkgconfig/panelw.pc ${pkgdir}/usr/lib/pkgconfig/panel.pc
+  cp -f ${pkgdir}/usr/lib/pkgconfig/ticw.pc ${pkgdir}/usr/lib/pkgconfig/tic.pc
+}
